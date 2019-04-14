@@ -573,6 +573,38 @@ all.equal(dt1, dt2)
 @
 
 \section{Zadanie 7}
+\subsection{Base R} 
+<<cache=TRUE, echo=TRUE>>=
+df_base_7 <- function(Votes, Posts) {
+V <- as.data.frame(Votes[Votes$VoteTypeId ==2 ,"PostId"], stringsAsFactors = FALSE)
+colnames(V)[1] <- "PostId"
+V$VoteDate <- as.integer( substring(Votes[Votes$VoteTypeId ==2, "CreationDate"] , 1,4)) 
+V$VoteDate <- ifelse(V$VoteDate >= 2016, "new", "old")
+VotesByAge <- aggregate(V$PostId, by = V[, c("PostId", "VoteDate")], length)
+colnames(VotesByAge)[3] <- "Total"
+
+V <- VotesByAge 
+V$NewVotes <- ifelse(V$VoteDate == "new", V$Total, 0)
+V$OldVotes <- ifelse(V$VoteDate == "old", V$Total, 0)
+
+Vnew <- aggregate(V$NewVotes, by = list(V$PostId), max )
+Vold <- aggregate(V$OldVotes, by = list(V$PostId), max )
+Vtot <- aggregate(V$Total, by = list(V$PostId), sum)
+Vall <- merge(Vnew, Vold, "Group.1")
+Vall <- merge(Vall, Vtot, "Group.1")
+head(Vall)
+colnames(Vall) <- c("PostId","NewVotes", "OldVotes" , "Votes")
+VotesByAge2 <- Vall[Vall$NewVotes == 0,]
+P <- Posts[Posts$PostTypeId ==1 ,]
+A <- merge(VotesByAge2 , P, by.x = "PostId", by.y = "Id")
+A <- A[, c("Title", "OldVotes")]
+A <- A[order(-A$OldVotes),]
+rownames(A) <- NULL
+
+final <- head(A, n=10)
+return(final)
+}
+@
 \subsection{Dplyr}
 <<cache=TRUE, echo=TRUE>>=
 df_dplyr_7 <- function(Votes, Posts){
