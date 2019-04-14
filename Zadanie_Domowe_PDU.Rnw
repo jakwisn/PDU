@@ -220,6 +220,25 @@ df_sql_3 <- function () {
           GROUP BY Year")
 }
 @
+\subsection{Base R}
+<<cache=TRUE, echo=TRUE>>=
+df_base_3 <- function(Votes, Posts) {
+temp <- as.data.frame(Votes[Votes$VoteTypeId == 2, "PostId"], stringsAsFactros = FALSE)
+colnames(temp)[1] <- "PostId"
+temp$Year <- substring(Votes[Votes$VoteTypeId ==2 , "CreationDate"], 1, 4)
+temp <- aggregate(temp$PostId, by = temp[,c("PostId", "Year")] ,FUN = length )
+colnames(temp) <- c("PostId", "Year", "Count")
+UpvotesPerYear <- temp
+temp <- merge(Posts[Posts$PostTypeId == 1, ], UpvotesPerYear, by.x = "Id", by.y = "PostId")
+temp1 <- aggregate(temp$Count, by= list(temp$Year), max)
+colnames(temp1) <- c("Year", "Count")
+
+temp1 <- merge(temp, temp1, by.x = c("Year", "Count"), by.y = c("Year", "Count") )
+result <- temp1[,c("Title", "Year", "Count")]
+return(result)
+}
+@
+
 \subsection{Dplyr} 
 <<cache=TRUE, echo=TRUE>>=
 df_dplyr_3 <- function(Votes, Posts) {
@@ -582,5 +601,27 @@ return(A)
 }
 
 @
+\subsection{Data.table}
+<<cache=TRUE, echo=TRUE>>=
+df_table_7 <- function(Posts, Votes) {
+Ptable <- as.data.table(Posts) 
+Vtable <- as.data.table(Votes)
+A <- Vtable[Vtable$VoteTypeId ==2 ,,]
+A$VoteDate <- A[, .(VoteDate = year(A$CreationDate)),]
+A$VoteDate <- A[, .(VoteDate= ifelse(VoteDate >= 2016 , "new", "old")) ,]
+VotesByAge <- A[, .(Total = .N) , by = .(PostId, VoteDate)]
 
+VotesByAge2 <- VotesByAge[, .(NewVotes = max(ifelse(VoteDate == "new", Total, as.integer(0))),
+                               OldVotes = max(ifelse(VoteDate == "old", Total, as.integer(0))),
+                               Votes = sum(Total)), by = .(PostId)][NewVotes ==0,,]
+setkey(VotesByAge2, PostId) 
+setkey(Ptable, Id)
+
+V <- VotesByAge2[Ptable, nomatch =0]
+V <- V[PostTypeId ==1, .(Title, OldVotes)]
+V <- setorder(V, -OldVotes)
+V <- V[1:10]
+return(V)
+}
+@
 \end{document}
