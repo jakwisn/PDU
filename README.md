@@ -1,3 +1,3 @@
 # PDU
-Projekty na przedmiot Przetwarzanie Danych Obiektowych
+Projekty na przedmiot Przetwarzanie Danych Ustrukturyzowanych
 
