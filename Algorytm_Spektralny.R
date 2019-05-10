@@ -1,6 +1,3 @@
-
-
-
 library(igraph)
 macierz_odl <- function(X) { 
   # z jedna petla
@@ -52,7 +49,7 @@ Mnn_graph <- function(S) {
   # zamieniam na graf rozumiany przez paczke igraph
   g <- graph_from_adjacency_matrix(G,mode = "undirected")
   # jesli jest spojny zwracamy graf
-  if(is_connected(g)){return(g)}
+  if(is_connected(g)){return(G)}
   else{
   # jesli nie niej spójny, patrzymy na ile podgrafow spojnych jest podzielony
   p <- components(g)$no
@@ -97,10 +94,13 @@ spectral_clustering <- function(X, k, M){
   E <- Laplacian_eigen(G,k)
   
   # funkcja k-means dziala dobrze przy wiekszej ilosci iteracji niz domyslna
-  # ja wzialem 100
-  K <- kmeans(E,k, iter.max = 100)$cluster
+  # ja wzialem 250
+  
+  K <- kmeans(E,k, iter.max = 250)$cluster
   return(K)
 }
 
-
-spectral_clustering(twodiamonds,2,3)
+X <- engytime
+nrow(X)
+M <- 2
+k <- 2
