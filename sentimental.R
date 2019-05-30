@@ -1,7 +1,6 @@
 library(dplyr)
 library(ggplot2)
 library(stringi)
-library(forcats)
 
 # https://www.cs.uic.edu/~liub/FBS/sentiment-analysis.html#lexicon
 # Pytania - jakich zwierzat jest najwiecej 
@@ -15,13 +14,11 @@ positive <- read.csv("pets/positive", sep="")
 positive <- as.array(positive$a.)
 Posts <- read.csv("pets/Posts.csv")
 
-Titles <- as.character(Posts$X_Title[Posts$X_Title != "" ])
-Posts <- Posts[Posts$X_Title != "",]
-
-tytul <- Titles[3]
 
 naive_sentimental_analysis <- function(sentance){
-  list_of_words <- strsplit(sentance, split = " ")
+
+  # Algorytm do naiwnej analizy sentymentalnej 
+    list_of_words <- strsplit(sentance, split = " ")
   list_of_words <- list_of_words[[1]]
   output <- rep(0, length(list_of_words))
   i <- 1
@@ -35,6 +32,7 @@ naive_sentimental_analysis <- function(sentance){
 
 check_all <- function(tytuly){
   
+  #  funkcja wykonuje naive sentimental analysis na kazdym tytule
   output <- rep(0, length(tytuly))
   i <- 1
   # usuwam znaki zapytania i wykrzykniki aby ostatnie slowa tez byly łapane
@@ -48,53 +46,74 @@ check_all <- function(tytuly){
     ifelse(x >= 1 , output[i] <- "positive", ifelse(x <= -1, output[i] <- "negative", output[i] <- "neutral" ))
     i <- i +1
   }
-  X <- matrix(0, length(tytuly),2)
-  X[,1] <- tytuly
-  X[,2] <- output
-  X <- as.data.frame(X)
-  return(X)
+  return(output)
 }
 
 
 
 
-df <-check_all(Titles)
-Posts$sentiment <-df$sentiment
-colnames(df) <- c("Title", "sentiment")
 
-tagi <- stri_replace_all_coll(Posts$X_Tags,"<","", vecorize_all= TRUE)
+animals <- c("cats","dogs","fish", "rabbits","birds","turtles","snakes", "horses", "fleas","hamsters", "lizards")
+
+# tworze z tagow tableke tagow np <dog><food><love> ---> ["dog","food","love"]
+strip_tagi <- function(Tagi){
+tagi <- stri_replace_all_coll(Tagi,"<","", vecorize_all= TRUE)
 tagi <- stri_replace_all_coll(tagi,">"," ", vecorize_all= TRUE)
 tagi <- strsplit(tagi, split = " ")
-tabelkatagow <- unlist(tagi)
-
-animals <- c("cats","dogs","fish", "rabbits","birds","turtles","snakes", "horses", "fleas","parrots","hamsters", "lizards")
-
-
-for(i in 1:length(df$Title)){
-  a <- animals[which(animals %in% tagi[[i]])]
-  ifelse( is.character(a) & length(a) != 0, 
-          df$pet[i] <- a,
-          df$pet[i] <- "other")
+return(tagi)
 }
 
-table(df$sentiment)
+Tags <- posty$Tags %>% strip_tagi()
+i <- 1
+# tutaj jezeli zwierze jest w tabelce tagow, to przypisuje je do animal
+which_animal <- function(Tags){
+  animal <- matrix(0, length(Tags), 1)
+  for(i in 1:length(Tags)){
+  a <- animals[which(animals %in% Tags[[i]])]
+  ifelse( is.character(a) & length(a) == 1 , 
+          animal[i,1] <- a , 
+          animal[i,1] <- "other")
+  }
+  return(animal)
+}
 
-df$sentiment <- as.factor(df$sentiment)
+posty <-  Posts %>% filter(X_Tags != "") %>% filter(X_Title != "" ) %>% 
+          select(X_OwnerUserId, X_Title, X_Score, X_ViewCount, X_AnswerCount, X_Tags )
+colnames(posty) <- c("OwnerUserId", "Title", "Score", "ViewCount", "AnswerCount","Tags")
+posty$Sentiment <- check_all(posty$Title) %>% as.factor()
+posty$animal <- posty$Tags %>% strip_tagi() %>% which_animal()
 
-ggplot(df, aes(x = sentiment , fill = sentiment)) + geom_bar() + theme_bw()
-ggplot(df, aes(x = pet, fill= pet) )+  geom_bar() + theme_bw() + coord_flip()
-ggplot(df, aes(x = pet, fill = sentiment)) + geom_bar(position = "fill") +
+
+
+# 3 rysunki dla petsow
+
+# ilość pozytywnych i negatywnych
+ggplot(posty, aes(x = Sentiment , fill = Sentiment)) + geom_bar() + theme_bw()
+# jakie zwierzęta najczęściej się pojawiają
+ggplot(posty, aes(x = animal, fill= animal) )+  geom_bar() + theme_bw() + coord_flip()
+# ilość pozytywnych i negatywnych w stosunku do zwierząt
+ggplot(posty, aes(x = animal, fill = Sentiment)) + geom_bar(position = "fill") +
         guides(fill = guide_legend(reverse = TRUE)) + scale_y_reverse() 
 
-which(animals %in% tagi[[953]])
+
+# Users 
+
+Users <- read.csv("./pets/Users.csv")
+
+X <-  Posts %>% inner_join(Users , by= c("X_OwnerUserId" = "X_Id")) %>%
+      select(X_Id, X_DisplayName, X_Title, X_Score, X_ViewCount,X_UpVotes, X_Location, X_Tags)
+X$Sentiment <- X$X_Title %>% check_all()
+colnames(X) <- c("Id", "Name","Title", "Score", "ViewCount", "Upvotes", "Location", "Tags", "Sentiment")
+
+X <-  X %>% filter(Title != "") %>% arrange(desc(ViewCount)) 
+X$Animal <- X$Tags %>% strip_tagi() %>% which_animal() %>% as.factor() 
+
+top_users <-  X %>% group_by(Name) %>% summarise(TotalUpvotes = sum(Upvotes)) %>% arrange(desc(TotalUpvotes)) %>% 
+              slice(1:5) %>% left_join(X, by = "Name") 
 
 
-
-
-
-
-
-
+ggplot(top_users, aes(x = Name, fill = Animal)) + geom_bar() + theme_bw()
+ggplot(top_users, aes(x = Name, fill = Sentiment)) + geom_bar() + theme_bw()
 
 
 
