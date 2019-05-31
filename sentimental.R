@@ -52,7 +52,7 @@ check_all <- function(tytuly){
 
 
 Tagi <- Posts$X_Tags
-
+typeof(Tagi)
 animals <- c("cats","dogs","fish", "rabbits","birds","turtles","snakes", "horses", "fleas","hamsters", "lizards")
 
 # tworze z tagow tableke tagow np <dog><food><love> ---> ["dog","food","love"]
@@ -63,12 +63,12 @@ tagi <- strsplit(tagi, split = " ")
 return(tagi)
 }
 
-Tagi %>% strip_tagi()
+Tagi<- X[1:2,]
+strip_tagi(X$Tags)
 
-Tags <- posty$Tags %>% strip_tagi()
-i <- 1
 # tutaj jezeli zwierze jest w tabelce tagow, to przypisuje je do animal
 which_animal <- function(Tags){
+  i <- 1
   animal <- matrix(0, length(Tags), 1)
   for(i in 1:length(Tags)){
   a <- animals[which(animals %in% Tags[[i]])]
@@ -78,8 +78,5 @@ which_animal <- function(Tags){
   }
   return(animal)
 }
-
-
-
 
 
