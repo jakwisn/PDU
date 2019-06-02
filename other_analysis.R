@@ -51,7 +51,7 @@ worst_users <-X %>% group_by(Name) %>% summarise(DownUpDifference = sum(DownVote
   ggsave("zwierzęta.png")
 # ilość pozytywnych i negatywnych w stosunku do zwierząt
   ggplot( Y_animal, aes(x = reorder(animal, part) , fill = Sentiment)) + geom_bar(position = "fill") +
-          guides(fill = guide_legend(reverse = TRUE)) + scale_y_reverse() + xlab("Zwierzęta") + ylab("Sentyment")
+          guides(fill = guide_legend(reverse = TRUE)) + scale_y_reverse() + xlab("Zwierzęta") + ylab("Sentyment") + theme_bw()
   ggsave("sentyment_a_zwierzę.png")
   
 # najlepsi + zwierzeta
